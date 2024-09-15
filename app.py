@@ -7,7 +7,7 @@ import os
 app = Flask(__name__)
 
 # Set your OpenAI API key here
-openai.api_key =  os.getenv('OPENAI_API_KEY')  # Replace with your actual OpenAI API key
+openai.api_key = os.getenv('OPENAI_API_KEY')  # Replace with your actual OpenAI API key
 
 # ESP32 IP address (replace with your actual ESP32 IP address)
 ESP32_IP = os.getenv('ESP32_IP')   #"http://192.168.43.98"   Replace with the IP address of your ESP32
@@ -16,6 +16,12 @@ if openai.api_key is None:
     raise EnvironmentError("OPENAI_API_KEY not set")
 if ESP32_IP is None:
     raise EnvironmentError("ESP32_IP not set")
+
+# Root route to handle the homepage
+@app.route('/')
+def index():
+    return "Welcome! Your Flask app is running on Render."
+
 # Helper function to clean the OpenAI response
 def clean_openai_response(response_text):
     # Remove specific unwanted phrases like "opening curly bracket", "closing curly bracket"
