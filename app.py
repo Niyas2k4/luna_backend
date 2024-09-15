@@ -10,8 +10,12 @@ app = Flask(__name__)
 openai.api_key =  os.getenv('OPENAI_API_KEY')  # Replace with your actual OpenAI API key
 
 # ESP32 IP address (replace with your actual ESP32 IP address)
-ESP32_IP = "http://192.168.43.98"  # Replace with the IP address of your ESP32
+ESP32_IP = os.getenv('ESP32_IP')   #"http://192.168.43.98"   Replace with the IP address of your ESP32
 
+if openai.api_key is None:
+    raise EnvironmentError("OPENAI_API_KEY not set")
+if ESP32_IP is None:
+    raise EnvironmentError("ESP32_IP not set")
 # Helper function to clean the OpenAI response
 def clean_openai_response(response_text):
     # Remove specific unwanted phrases like "opening curly bracket", "closing curly bracket"
