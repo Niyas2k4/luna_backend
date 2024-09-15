@@ -6,7 +6,7 @@ import requests
 app = Flask(__name__)
 
 # Set your OpenAI API key here
-openai.api_key = "sk-V6ICmQpdCCr3XtsPA0e5lh4xnAdvSXHdmQErGhiapbT3BlbkFJAJCCXbFqKw3VHS7MGMTo6wBerAMzkjzWZoNVwsuLMA"  # Replace with your actual OpenAI API key
+openai.api_key =  os.getenv('OPENAI_API_KEY')  # Replace with your actual OpenAI API key
 
 # ESP32 IP address (replace with your actual ESP32 IP address)
 ESP32_IP = "http://192.168.43.98"  # Replace with the IP address of your ESP32
