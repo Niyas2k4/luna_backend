@@ -69,10 +69,12 @@ def control_esp32_device(device_type, device_number, action):
 
 @app.route('/api/openai', methods=['POST'])
 def handle_openai():
-    data = request.get_json()
-    app.logger.info(f"Received data: {data}")
-    if not data or 'message' not in data:
-        return jsonify({'error': 'Invalid request format, "message" key is missing'}), 400
+    try:
+        # Extract the user's message from the POST request
+        data = request.get_json()
+
+        if not data or 'message' not in data:
+            return jsonify({'error': 'Invalid request format, "message" key is missing'}), 400
 
         user_message = data['message'].lower()
 
