@@ -6,7 +6,7 @@ import requests
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})  # Allow all origins for /api/*
 # Set your OpenAI API key here
 openai.api_key = os.getenv('OPENAI_API_KEY')  # Replace with your actual OpenAI API key
 
@@ -73,10 +73,11 @@ def handle_openai():
         # Extract the user's message from the POST request
         data = request.get_json()
 
-        if not data or 'message' not in data:
-            return jsonify({'error': 'Invalid request format, "message" key is missing'}), 400
+        if not data or 'current_question' not in data:
+            return jsonify({'error': 'Invalid request format, "current_question" key is missing'}), 400
 
-        user_message = data['message'].lower()
+        user_message = data['current_question'].lower()  # The current question
+        previous_conversation = data.get('previous_conversation', '')  # Optional previous conversation
 
         # If the message contains LED or Motor commands, handle it
         if "turn on room light" in user_message:
@@ -125,12 +126,13 @@ def handle_openai():
             response_message_motor2 = control_esp32_device('motor', 2, 'on')
             return jsonify({'response': f"{response_message_led1}, {response_message_led2}, {response_message_motor1}, and {response_message_motor2}"})       
 
-        # Make OpenAI request for general queries
+        full_conversation = f"Previous: {previous_conversation}\nCurrent: {user_message}"
+
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "act as JAVIS, your name is 'LUNA' and you should respond conversationally without unnecessary punctuation descriptions like 'opening' and 'closing'."},
-                {"role": "user", "content": user_message}
+                {"role": "user", "content": full_conversation}
             ],
             max_tokens=200
         )
@@ -147,6 +149,6 @@ def handle_openai():
     except Exception as e:
         app.logger.error(f"Error while communicating with OpenAI: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
+        
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
