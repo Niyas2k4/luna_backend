@@ -22,7 +22,7 @@ device_states = {
     "roomLight": False,
     "mainLight": False,
     "motor1": False,
-    "motor2": False
+    
 }
 
 @app.route('/')
@@ -56,10 +56,7 @@ def control_esp32_device(device_type, device_number, action):
                 requests.get(f"{ESP32_IP}/motor1/{action}")
                 return f"Turning {'on' if action == 'on' else 'off'} Motor 1"
 
-            elif device_number == 2:
-                device_states["motor2"] = (action == 'on')
-                requests.get(f"{ESP32_IP}/motor2/{action}")
-                return f"Turning {'on' if action == 'on' else 'off'} Motor 2"
+            
 
         return "Invalid command"
     
@@ -107,26 +104,18 @@ def handle_openai():
             response_message = control_esp32_device('motor', 1, 'off')
             return jsonify({'response': response_message})
 
-        elif "turn on motor 2" in user_message:
-            response_message = control_esp32_device('motor', 2, 'on')
-            return jsonify({'response': response_message})
-
-        elif "turn off motor 2" in user_message:
-            response_message = control_esp32_device('motor', 2, 'off')
-            return jsonify({'response': response_message})
-
         elif "kill power" in user_message:
             response_message_led1 = control_esp32_device('led', 1, 'off')
             response_message_led2 = control_esp32_device('led', 2, 'off')
             response_message_motor1 = control_esp32_device('motor', 1, 'off')
-            response_message_motor2 = control_esp32_device('motor', 2, 'off')
+            
             return jsonify({'response': f"{response_message_led1}, {response_message_led2}, {response_message_motor1}, and {response_message_motor2}"})
 
         elif "full power" in user_message:
             response_message_led1 = control_esp32_device('led', 1, 'on')
             response_message_led2 = control_esp32_device('led', 2, 'on')
             response_message_motor1 = control_esp32_device('motor', 1, 'on')
-            response_message_motor2 = control_esp32_device('motor', 2, 'on')
+            
             return jsonify({'response': f"{response_message_led1}, {response_message_led2}, {response_message_motor1}, and {response_message_motor2}"})       
 
         full_conversation = f"Previous: {previous_conversation}\nCurrent: {user_message}"
@@ -134,7 +123,7 @@ def handle_openai():
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "act as JAVIS, your name is 'LUNA' and you should respond conversationally without unnecessary punctuation descriptions like 'opening' and 'closing'."},
+                {"role": "system", "content": "act as JAVIS, your name is 'LUNA', your creaters are student from J D T Polytechnic college and you should respond conversationally without unnecessary punctuation descriptions like 'opening' and 'closing'."},
                 {"role": "user", "content": full_conversation}
             ],
             max_tokens=200
