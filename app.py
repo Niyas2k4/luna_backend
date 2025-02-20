@@ -7,79 +7,82 @@ import os
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})  # Allow all origins for /api/*
-# Set your OpenAI API key here
-openai.api_key = os.getenv('OPENAI_API_KEY')  # Replace with your actual OpenAI API key
 
-# ESP32 IP address (replace with your actual ESP32 IP address)
-ESP32_IP = os.getenv('ESP32_IP')   #"http://192.168.43.98"   Replace with the IP address of your ESP32
+# Set OpenAI API Key
+openai.api_key = os.getenv('OPENAI_API_KEY')  
+ESP32_IP = os.getenv('ESP32_IP')  
 
 if openai.api_key is None:
     raise EnvironmentError("OPENAI_API_KEY not set")
 if ESP32_IP is None:
     raise EnvironmentError("ESP32_IP not set")
 
-# Root route to handle the homepage
+# ✅ Global dictionary to store device states
+device_states = {
+    "roomLight": False,
+    "mainLight": False,
+    "motor1": False,
+    "motor2": False
+}
+
 @app.route('/')
 def index():
     return "Welcome! Your Flask app is running on Render."
 
-# Helper function to clean the OpenAI response
+# Helper function to clean OpenAI response
 def clean_openai_response(response_text):
-    # Remove specific unwanted phrases like "opening curly bracket", "closing curly bracket"
     cleaned_response = re.sub(r'(opening curly bracket|closing curly bracket|opening bracket|closing bracket)', '', response_text, flags=re.IGNORECASE)
-    
-    # Strip excess whitespace
-    cleaned_response = cleaned_response.strip()
+    return cleaned_response.strip()
 
-    return cleaned_response
-
-# Function to control the ESP32 LEDs and motors
+# ✅ Function to control ESP32 devices and update state
 def control_esp32_device(device_type, device_number, action):
+    global device_states
+
     try:
         if device_type == 'led':
-            if device_number == 1 and action == 'on':
-                requests.get(f"{ESP32_IP}/led1/on")
-                return "Turning on Light in room"
-            elif device_number == 1 and action == 'off':
-                requests.get(f"{ESP32_IP}/led1/off")
-                return "Turning off LED1"
-            elif device_number == 2 and action == 'on':
-                requests.get(f"{ESP32_IP}/led2/on")
-                return "Turning on LED2"
-            elif device_number == 2 and action == 'off':
-                requests.get(f"{ESP32_IP}/led2/off")
-                return "Turning off LED2"
+            if device_number == 1:
+                device_states["roomLight"] = (action == 'on')
+                requests.get(f"{ESP32_IP}/led1/{action}")
+                return f"Turning {'on' if action == 'on' else 'off'} Room Light"
+
+            elif device_number == 2:
+                device_states["mainLight"] = (action == 'on')
+                requests.get(f"{ESP32_IP}/led2/{action}")
+                return f"Turning {'on' if action == 'on' else 'off'} Main Light"
+
         elif device_type == 'motor':
-            if device_number == 1 and action == 'on':
-                requests.get(f"{ESP32_IP}/motor1/on")
-                return "Turning on Motor 1"
-            elif device_number == 1 and action == 'off':
-                requests.get(f"{ESP32_IP}/motor1/off")
-                return "Turning off Motor 1"
-            elif device_number == 2 and action == 'on':
-                requests.get(f"{ESP32_IP}/motor2/on")
-                return "Turning on Motor 2"
-            elif device_number == 2 and action == 'off':
-                requests.get(f"{ESP32_IP}/motor2/off")
-                return "Turning off Motor 2"
+            if device_number == 1:
+                device_states["motor1"] = (action == 'on')
+                requests.get(f"{ESP32_IP}/motor1/{action}")
+                return f"Turning {'on' if action == 'on' else 'off'} Motor 1"
+
+            elif device_number == 2:
+                device_states["motor2"] = (action == 'on')
+                requests.get(f"{ESP32_IP}/motor2/{action}")
+                return f"Turning {'on' if action == 'on' else 'off'} Motor 2"
+
         return "Invalid command"
+    
     except Exception as e:
-        app.logger.error(f"Error while sending command to ESP32: {str(e)}")
+        app.logger.error(f"Error sending command to ESP32: {str(e)}")
         return "Failed to communicate with ESP32"
+
+# ✅ API to get the current device states
+@app.route('/api/get_device_states', methods=['GET'])
+def get_device_states():
+    return jsonify(device_states)
 
 @app.route('/api/openai', methods=['POST'])
 def handle_openai():
     try:
-        # Extract the user's message from the POST request
         data = request.get_json()
-
         if not data or 'current_question' not in data:
             return jsonify({'error': 'Invalid request format, "current_question" key is missing'}), 400
 
-        user_message = data['current_question'].lower()  # The current question
-        previous_conversation = data.get('previous_conversation', '')  # Optional previous conversation
+        user_message = data['current_question'].lower()
+        previous_conversation = data.get('previous_conversation', '')
 
-        # If the message contains LED or Motor commands, handle it
+        # ✅ Update device states when a command is executed
         if "turn on room light" in user_message:
             response_message = control_esp32_device('led', 1, 'on')
             return jsonify({'response': response_message})
@@ -137,13 +140,9 @@ def handle_openai():
             max_tokens=200
         )
 
-        # Extract the response message from OpenAI's response
         openai_response = response['choices'][0]['message']['content'].strip()
-
-        # Clean the OpenAI response before sending it to the Android app
         cleaned_response = clean_openai_response(openai_response)
 
-        # Send the cleaned response back to the Android app
         return jsonify({'response': cleaned_response})
 
     except Exception as e:
