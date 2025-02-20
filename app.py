@@ -109,14 +109,14 @@ def handle_openai():
             response_message_led2 = control_esp32_device('led', 2, 'off')
             response_message_motor1 = control_esp32_device('motor', 1, 'off')
             
-            return jsonify({'response': f"{response_message_led1}, {response_message_led2}, {response_message_motor1}, and {response_message_motor2}"})
+            return jsonify({'response': f"{response_message_led1}, {response_message_led2}, {response_message_motor1}"})
 
         elif "full power" in user_message:
             response_message_led1 = control_esp32_device('led', 1, 'on')
             response_message_led2 = control_esp32_device('led', 2, 'on')
             response_message_motor1 = control_esp32_device('motor', 1, 'on')
             
-            return jsonify({'response': f"{response_message_led1}, {response_message_led2}, {response_message_motor1}, and {response_message_motor2}"})       
+            return jsonify({'response': f"{response_message_led1}, {response_message_led2}, {response_message_motor1}"})       
 
         full_conversation = f"Previous: {previous_conversation}\nCurrent: {user_message}"
 
